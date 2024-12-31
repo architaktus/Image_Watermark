@@ -19,7 +19,7 @@ DB_PATH = os.path.join(DB_FOLDER, "contacts.db")
 # 启动GUI
 def main():
     app = QApplication(sys.argv) #sys.argv 是一个列表，其中包含了运行 Python 脚本时传递的命令行参数
-    window = gui.MainWindow()
+    window = gui.WatermarkApp()
     window.show()
     sys.exit(app.exec_())
 
