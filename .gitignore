@@ -1,0 +1,4 @@
+# 排除子文件夹
+_ref/
+images/
+watermarks/
