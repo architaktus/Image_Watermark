@@ -61,7 +61,7 @@ def extract_metadata(image_path):
     # 使用 Pillow 提取标题等基础数据
     try:
         with Image.open(image_path) as img:
-            metadata['title'] = img.filename
+            metadata['title'] = os.path.basename(img.filename)
             metadata['format'] = img.format  # 文件格式
             metadata['mode'] = img.mode      # 图像模式
             metadata['size']['width'] = img.size[0]  # 尺寸 (宽)

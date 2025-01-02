@@ -3,41 +3,49 @@ from PyQt5.QtWidgets import (
     QMainWindow, 
     QWidget, QTabWidget, QListWidget,
     QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QPushButton, QLineEdit, QCheckBox, QGroupBox, 
+    QLabel, QPushButton, QLineEdit, QTextEdit,
+    QCheckBox, QGroupBox, 
     QFileDialog, QFormLayout
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QTimer
 import os
 from modules.utils import (utils, image_manager)
+from modules import config
 
 class WatermarkApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Watermark Tool")
-        self.setGeometry(100, 100, 1000, 600)
+        self.setGeometry(100, 100, 1500, 750)
         # 一些实例变量
         self._dir_img_to_process = None
 
         # Main Layout
         main_widget = QWidget()
-        main_layout = QHBoxLayout(main_widget)
+        main_layout = QGridLayout(main_widget)
         self.setCentralWidget(main_widget)
 
-        # Left Panel (Red Area)
+        # Left Panel
         self.left_panel = self.init_left_panel()
-        main_layout.addWidget(self.left_panel)
+        main_layout.addWidget(self.left_panel, 0, 0)  # 第一行，第一列，至第2行，第1列（起始坐标x,y, rowspan, colspan）        
+
+        # Top-right Panel: Metadata
+        self.metadata_panel = self.init_metadata_panel()
+        main_layout.addWidget(self.metadata_panel, 0, 1)    # 第1行，第2列
 
         # Tab Area (Yellow Area)
         self.tabs = QTabWidget()        
         self.tabs.addTab(self.init_embed_tab(), "Embed Watermark") # Embed Watermark Tab
         self.tabs.addTab(self.init_read_tab(), "Read Watermark") # Read Watermark Tab
         self.tabs.currentChanged.connect(self.update_left_panel)  # Update left panel based on the active tab
-        main_layout.addWidget(self.tabs)
+        main_layout.addWidget(self.tabs, 0, 2)
 
         # 调整宽度比例
-        main_layout.setStretch(0, 2)  # 左侧面板的宽度占比为2
-        main_layout.setStretch(1, 5)  # 右侧标签页的宽度占比为5
+        main_layout.setColumnStretch(0, 1)  # 左侧面板的宽度占比为2
+        main_layout.setColumnStretch(1, 1)  # 右侧标签页的宽度占比为2
+        main_layout.setColumnStretch(2, 1)  # 右侧标签页的宽度占比为2
+        main_layout.setRowStretch(0, 1)
 
 #####################################################################################
 #####################################################################################      
@@ -51,7 +59,10 @@ class WatermarkApp(QMainWindow):
 
         # 确保预览框始终为正方形（取较小的边长）
         square_size = min(panel_width, panel_height) - 25  # 留出边距
-        self.preview_label.setFixedSize(square_size, square_size)
+        #self.preview_label.setFixedSize(square_size, square_size)
+        self.preview_label.setMinimumHeight(square_size)
+        self.preview_label.setMaximumHeight(square_size)
+
 
         # 延迟刷新布局
         QTimer.singleShot(10, self.left_panel.layout().update)
@@ -64,13 +75,10 @@ class WatermarkApp(QMainWindow):
         """
         从 'to_process' 文件夹加载图片并更新列表控件。
         """
-        config = utils.load_config()
-        self.list_image_to_process.clear()
-        if self._dir_img_to_process is None:
-            folder_path_ending = config['directories']['image_to_process_directory']
-            self._dir_img_to_process = os.path.join(utils.BASE_DIR, folder_path_ending)            
+        self._dir_img_to_process = config.IMAGE_TO_PROCESS_DIR
+        print(self._dir_img_to_process)          
         images = image_manager.get_image_list(self._dir_img_to_process)
-        print (images)
+        #print (images)
         self.list_image_to_process.addItems(images)
 
     # 选取图片时
@@ -84,7 +92,35 @@ class WatermarkApp(QMainWindow):
         # 使用 QPixmap 加载图片
         pixmap = QPixmap(self.selected_image_path)
         self.preview_label.setPixmap(pixmap.scaled(self.preview_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        
+
+        # 读取metadata
+        metadata = image_manager.extract_metadata(self.selected_image_path)
+        # 显示metadata
+        self.exif_label_filename_old.setText(metadata['title'])
+        self.exif_label_resolution.setText(f"{metadata['compression']['dpi']}")
+        self.exif_label_compression.setText(f"{metadata['compression']['compression_format']}") #TODO quality compression level。。。
+        self.exif_label_size.setText(f"{metadata['size']['width']} x {metadata['size']['height']}")
+        #self.exif_label_colordepth.setText(metadata['title']) # TODO
+        #self.exif_label_createtime.setText(metadata['title']) # TODO
+
+        if metadata['exif']:
+            meta_exif = metadata['exif']
+            if 'ImageTitle' in meta_exif:
+                self.img_label_documenttitle_old_exif.setText(meta_exif['ImageTitle'])
+            if 'Artist' in meta_exif:
+                self.img_label_author_old_exif.setText(metadata['Artist'])
+            if 'Copyright' in meta_exif:
+                self.img_label_copyright_old_exif.setText(metadata['Copyright'])
+            if 'UserComment' in meta_exif:
+                self.img_label_comment_old_exif.setText(metadata['UserComment'])        
+        if metadata['iptc']:
+            meta_iptc = metadata['iptc']
+            if 'Document title' in meta_iptc:
+                self.img_label_documenttitle_old_iptc.setText(metadata['Document title'])
+            if 'Creator' in meta_iptc:
+                self.img_label_author_old_iptc.setText(metadata['Creator'])
+            if 'CopyrightNotice' in meta_iptc:
+                self.img_label_copyright_old_iptc.setText(metadata['CopyrightNotice'])
 
 #    def draw_image(self):
         #file_path, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Images (*.png *.jpg *.jpeg *.bmp *.gif)")
@@ -98,7 +134,7 @@ class WatermarkApp(QMainWindow):
 #####################################################################################      
     # fixed left panel.
     def init_left_panel(self):
-        left_panel = QGroupBox("Info")
+        left_panel = QGroupBox("Image")
         layout = QVBoxLayout()
 
         # Preview Area：预览、选择图片
@@ -106,9 +142,8 @@ class WatermarkApp(QMainWindow):
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet("border: 1px solid grey;")
         #self.preview_label.setScaledContents(True)  # 允许内容随大小变化
-        self.tab_label = QLabel("Filename: Embedding Mode")
         layout.addWidget(self.preview_label)
-        layout.addWidget(self.tab_label)
+        layout.addWidget(QLabel("Image List"))
 
         # Image selection 
             # path Panel
@@ -126,33 +161,108 @@ class WatermarkApp(QMainWindow):
         self.list_image_to_process.itemClicked.connect(self.on_image_selected)
         #self.confirm_button.clicked.connect(self.process_selected_image)
 
+
+        left_panel.setLayout(layout)
+        return left_panel
+
+
+#####################################################################################
+#####################################################################################
+    # middle Panel: Metadata
+    def init_metadata_panel(self):
+        metadata_panel = QGroupBox("Info: Embedding Mode")
+        layout = QVBoxLayout()
+
+        #####################################################
         # Info Panel
         exif_group = QGroupBox("Info")
         exif_layout = QFormLayout()
 
-        self.exif_label_filename = QLineEdit("None")
-        self.exif_label_documenttitle = QLineEdit("None")
+        self.exif_label_filename_old = QLabel("")
+        self.exif_label_filename_new = QLineEdit("")
         self.exif_label_resolution = QLabel("N/A")
         self.exif_label_compression = QLabel("N/A")
         self.exif_label_size = QLabel("N/A")
         self.exif_label_colordepth = QLabel("N/A")
         self.exif_label_createtime = QLabel("N/A")
-        self.exif_label_comment = QLineEdit("Extra Comment")
         
-        exif_layout.addRow("file name:", self.exif_label_filename)
-        exif_layout.addRow("document title:", self.exif_label_documenttitle)
+        #exif_layout.addWidget(QLabel("file name"))
+        exif_layout.addRow("file name(original):", self.exif_label_filename_old)
+#        exif_layout.addRow("file name(new):", self.exif_label_filename_new)
         exif_layout.addRow("Resolution:", self.exif_label_resolution)
         exif_layout.addRow("Compression:", self.exif_label_compression)
         exif_layout.addRow("Size (Pixel):", self.exif_label_size)
         exif_layout.addRow("Color Depth:", self.exif_label_colordepth)
         exif_layout.addRow("Create Time:", self.exif_label_createtime)
-        exif_layout.addRow("Comment:", self.exif_label_comment)
 
         exif_group.setLayout(exif_layout)
         layout.addWidget(exif_group)
 
 
+        #####################################################
+        # meta-panel
+        metadata_group = QGroupBox("Metadata")
+        metadata_layout = QFormLayout()
 
+        # Title
+        self.img_label_documenttitle_old_exif = QLabel("")
+        #self.img_label_documenttitle_old_exif = QLineEdit("")
+        #self.img_label_documenttitle_old_exif.setReadOnly(True)
+        self.img_label_documenttitle_old_iptc = QLabel("")
+        self.img_label_documenttitle_new = QLineEdit("")
+        metadata_layout.addRow(QLabel("标题"))
+        metadata_layout.addRow("     EXIF - ImageTitle:", self.img_label_documenttitle_old_exif)
+        metadata_layout.addRow("     IPTC - Document title:", self.img_label_documenttitle_old_iptc)
+#        metadata_layout.addRow("     EXIF & IPTC - 新标题:", self.img_label_documenttitle_new)
+
+        # Author
+        self.img_label_author_old_exif = QLabel("")
+        self.img_label_author_old_iptc = QLabel("")
+        self.img_label_author_new = QLineEdit("")
+        metadata_layout.addRow(QLabel("作者"))
+        metadata_layout.addRow("     EXIF - Artist:", self.img_label_author_old_exif)
+        metadata_layout.addRow("     IPTC - Creator:", self.img_label_author_old_iptc)
+#        metadata_layout.addRow("     EXIF & IPTC - 新作者:", self.img_label_author_new)
+
+        # Copyright
+        self.img_label_copyright_old_exif = QLabel("")
+        self.img_label_copyright_old_iptc = QLabel("")
+        self.img_label_copyright_new = QLabel(config.COPYRIGHT_LONG)
+        self.img_label_copyright_new.setWordWrap(True)
+        metadata_layout.addRow(QLabel("版权"))
+        metadata_layout.addRow("     EXIF - Copyright:", self.img_label_copyright_old_exif)
+        metadata_layout.addRow("     IPTC - Copyright:", self.img_label_copyright_old_iptc)
+        metadata_layout.addRow("     EXIF & IPTC - 新版权:", self.img_label_copyright_new)
+
+        # Comment
+        self.img_label_comment_old_exif = QLabel("")
+        self.img_label_comment_new = QLineEdit("")
+        metadata_layout.addRow(QLabel("备注"))
+        metadata_layout.addRow("     EXIF - Comment:", self.img_label_comment_old_exif)
+#        metadata_layout.addRow("     EXIF - 新备注:", self.img_label_comment_new)
+        
+        metadata_group.setLayout(metadata_layout)
+        layout.addWidget(metadata_group)
+
+
+        #####################################################
+        # copyright-panel
+        copyright_group = QGroupBox("Copyright")
+        copyright_layout = QFormLayout()
+        self.copyright_basic = QLineEdit(config.COPYRIGHT_SHORT)  #版权基本信息
+        self.copyright_year = QLineEdit(config.COPYRIGHT_YEAR)  #年份信息
+        self.copyright_extra = QTextEdit(config.RIGHTS_USAGE_TERMS)  #额外信息后缀
+        self.copyright_full = QLabel(config.COPYRIGHT_LONG)
+        self.copyright_full.setWordWrap(True)
+        copyright_layout.addRow("版权基本信息:", self.copyright_basic)
+        copyright_layout.addRow("年份:", self.copyright_year)
+        copyright_layout.addRow("额外信息后缀:", self.copyright_extra)
+        copyright_layout.addRow("完整水印预览:", self.copyright_full)
+        copyright_group.setLayout(copyright_layout)
+        layout.addWidget(copyright_group)
+
+
+        #####################################################
         # button Panel
         self.update_button = QPushButton("Reload") #重新加载Exif
         # TODO 图片Exif + Database的数据如何协调？
@@ -160,8 +270,13 @@ class WatermarkApp(QMainWindow):
         layout.addWidget(self.update_button)
         layout.addWidget(self.save_button)
 
-        left_panel.setLayout(layout)
-        return left_panel
+
+        metadata_panel.setLayout(layout)
+
+        # TODO 添加按钮：一键删除所有EXIF信息
+        return metadata_panel
+    
+
 
 
 #####################################################################################
@@ -208,16 +323,8 @@ class WatermarkApp(QMainWindow):
         #关键信息组
         steg_key_group = QGroupBox("核心信息")
         steg_key_layout = QFormLayout()
-        self.label_basic = QLineEdit("版权基本信息")  #版权基本信息
-        self.label_important = QLineEdit("关键信息")  #关键信息
-        self.label_extra = QLineEdit("额外信息后缀")  #额外信息后缀
-        self.label_full = QLabel("Label Preview")
         self.text_key = QLineEdit("4321")  #加密密钥
         self.label_full_encrypted = QLabel("Encrypted Label Preview")
-        steg_key_layout.addRow("版权基本信息:", self.label_basic)
-        steg_key_layout.addRow("关键信息:", self.label_important)
-        steg_key_layout.addRow("额外信息后缀:", self.label_extra)
-        steg_key_layout.addRow("完整水印预览:", self.label_full)
         steg_key_layout.addRow("加密密钥:", self.text_key)
         steg_key_layout.addRow("加密水印预览:", self.label_full_encrypted)
         steg_key_group.setLayout(steg_key_layout)
@@ -326,10 +433,10 @@ class WatermarkApp(QMainWindow):
         current_tab = self.tabs.currentIndex()
         if current_tab == 0:  # Embed Watermark tab
             #self.tab_label.setReadOnly(False)
-            self.tab_label.setText("Filename: Embedding Mode")
+            self.metadata_panel.setTitle("Info: Embedding Mode")
         elif current_tab == 1:  # Read Watermark tab
             #self.tab_label.setReadOnly(True)
-            self.tab_label.setText("Filename: Reading Mode")
+            self.metadata_panel.setTitle("Info: Reading Mode")
 
     def open_image(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.jpeg)")

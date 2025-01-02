@@ -32,25 +32,8 @@ def test_database():
     print("数据库和表初始化完成")
     conn.close()
 
-# 读取配置文件
-def test_config():
-    config = utils.load_config()
-
-    # 读取数据
-    database_directory = config['directories']['database_directory']
-    image_to_process_directory = config['directories']['image_to_process_directory']
-    image_source_directory = config['directories']['image_source_directory']
-    image_watermarked_directory = config['directories']['image_watermarked_directory']
-    log_mode = config.getboolean('settings', 'log')
-
-    print(f"Database URL: {database_directory}")
-    print(f"Image Directory 1: {image_to_process_directory}")
-    print(f"Image Directory 2: {image_source_directory}")
-    print(f"Image Directory 3: {image_watermarked_directory}")
-    print(f"Log Mode: {log_mode}")
-
 
 if __name__ == "__main__":
-    test_config()
+    #test_config()
     test_database()
     main_gui()
