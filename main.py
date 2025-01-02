@@ -11,8 +11,6 @@ DB_FOLDER = "data"
 DB_PATH = os.path.join(DB_FOLDER, "contacts.db")
 
 
-
-
 # utils.log_action()
 
 

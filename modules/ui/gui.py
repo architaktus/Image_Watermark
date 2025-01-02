@@ -1,19 +1,23 @@
 
 from PyQt5.QtWidgets import (
     QMainWindow, 
-    QWidget, QTabWidget,
+    QWidget, QTabWidget, QListWidget,
     QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QLineEdit, QCheckBox, QGroupBox, 
     QFileDialog, QFormLayout
 )
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
+import os
+from modules.utils import (utils, image_manager)
 
 class WatermarkApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Watermark Tool")
         self.setGeometry(100, 100, 1000, 600)
+        # 一些实例变量
+        self._dir_img_to_process = None
 
         # Main Layout
         main_widget = QWidget()
@@ -35,6 +39,60 @@ class WatermarkApp(QMainWindow):
         main_layout.setStretch(0, 2)  # 左侧面板的宽度占比为2
         main_layout.setStretch(1, 5)  # 右侧标签页的宽度占比为5
 
+#####################################################################################
+#####################################################################################      
+    #utils
+
+    # 图片预览框随窗口变化而变化
+    def resizeEvent(self, event):
+        # 获取左侧面板的大小
+        panel_width = self.left_panel.width()
+        panel_height = self.left_panel.height()
+
+        # 确保预览框始终为正方形（取较小的边长）
+        square_size = min(panel_width, panel_height) - 25  # 留出边距
+        self.preview_label.setFixedSize(square_size, square_size)
+
+        # 延迟刷新布局
+        QTimer.singleShot(10, self.left_panel.layout().update)
+
+        super().resizeEvent(event)
+
+
+    # 加载图片列表
+    def load_images(self):
+        """
+        从 'to_process' 文件夹加载图片并更新列表控件。
+        """
+        config = utils.load_config()
+        self.list_image_to_process.clear()
+        if self._dir_img_to_process is None:
+            folder_path_ending = config['directories']['image_to_process_directory']
+            self._dir_img_to_process = os.path.join(utils.BASE_DIR, folder_path_ending)            
+        images = image_manager.get_image_list(self._dir_img_to_process)
+        print (images)
+        self.list_image_to_process.addItems(images)
+
+    # 选取图片时
+    def on_image_selected(self, item):        
+        selected_image = item.text()    # 获取选中的图片文件名
+        #self.label_zustand.setText(f"Selected Image: {selected_image}")     #设置当前状态
+        self.selected_image_path = os.path.join(self._dir_img_to_process, selected_image)
+        #self.process_button.setEnabled(True)
+        image_manager.read_image(self.selected_image_path)
+
+        # 使用 QPixmap 加载图片
+        pixmap = QPixmap(self.selected_image_path)
+        self.preview_label.setPixmap(pixmap.scaled(self.preview_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        
+
+#    def draw_image(self):
+        #file_path, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Images (*.png *.jpg *.jpeg *.bmp *.gif)")
+        #if file_path:
+#        pixmap = QPixmap(self.selected_image_path)
+        # 使用 QPixmap 加载图片
+        # 将图片设置到 QLabel
+#        self.preview_label.setPixmap(pixmap.scaled(self.preview_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
 #####################################################################################
 #####################################################################################      
@@ -43,13 +101,30 @@ class WatermarkApp(QMainWindow):
         left_panel = QGroupBox("Info")
         layout = QVBoxLayout()
 
-        # Preview Area
-        self.preview_label = QLabel("Image Preview", self)
+        # Preview Area：预览、选择图片
+        self.preview_label = QLabel("Image Preview: No Image Loaded", self)
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet("border: 1px solid grey;")
+        #self.preview_label.setScaledContents(True)  # 允许内容随大小变化
         self.tab_label = QLabel("Filename: Embedding Mode")
         layout.addWidget(self.preview_label)
         layout.addWidget(self.tab_label)
+
+        # Image selection 
+            # path Panel
+        self.list_image_to_process = QListWidget()
+        self.refresh_button = QPushButton("Refresh")
+#        self.load_image_button = QPushButton("Load Image")
+        self.refresh_button.clicked.connect(self.load_images)
+#        self.load_image_button.clicked.connect(self.draw_image)
+        layout.addWidget(self.list_image_to_process)
+        layout.addWidget(self.refresh_button)
+#        layout.addWidget(self.load_image_button)
+        self.load_images()
+
+            # 信号绑定
+        self.list_image_to_process.itemClicked.connect(self.on_image_selected)
+        #self.confirm_button.clicked.connect(self.process_selected_image)
 
         # Info Panel
         exif_group = QGroupBox("Info")
