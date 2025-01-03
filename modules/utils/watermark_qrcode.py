@@ -76,12 +76,13 @@ def save_watermark_png(watermark_img, watermark_id):
     )
 
     # 保存图片
-    # 将优化后的 PNG 保存到文件
     if zustand == 0:
+        # 将优化后的 PNG 保存到文件
         with open(output_path, "wb") as f:
             f.write(watermark_img_optimized)    
             f.close()
     else:
+        # 优化失败时
         print(f"zopfli优化失败 未优化的二维码已保存到: {output_path}")
         watermark_img.save(output_path, format="PNG", optimize=True, compress_level=9)
 
