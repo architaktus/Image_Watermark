@@ -2,10 +2,11 @@ import os
 
 # [directories]
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) # 项目根目录
-DATABASE_DIR = os.path.join(BASE_DIR, 'data', 'project.db')
+DATABASE_DIR = os.path.join(BASE_DIR, 'data', 'watermark.db')
 IMAGE_TO_PROCESS_DIR = os.path.join(BASE_DIR, 'images', 'to_process')
 IMAGE_SOURCE_DIR = os.path.join(BASE_DIR, 'images', 'source')
 IMAGE_WATERMARKED_DIR = os.path.join(BASE_DIR, 'images', 'watermarked')
+QRCODE_DIR = os.path.join(BASE_DIR, 'data', 'qrcode')
 
 
 # [settings]
@@ -22,3 +23,11 @@ RIGHTS_USAGE_TERMS = "All rights reserved. Unauthorized reproduction, distributi
 # contents
 COPYRIGHT_SHORT = f"©{AUTHOR} {COPYRIGHT_YEAR}.  All rights reserved."
 COPYRIGHT_LONG = f"©{AUTHOR} {COPYRIGHT_YEAR}.  {RIGHTS_USAGE_TERMS}"
+
+
+# 全局动态配置
+runtime_config = {
+    "WM_ID": "",    #水印id (对应db_utils中的watermark表格的watermark_id)
+    "WM_FILE_NAME": "",    #水印文件名 (对应db_utils中的watermark表格的watermark_file_name)
+    "WM_FILE_DIR": "",    #水印地址
+}

@@ -5,14 +5,11 @@ from PyQt5.QtWidgets import QApplication
 from modules.database import  db_utils
 from modules.ui import gui
 from modules.utils import utils
+from modules import config
 
 # 定义数据库路径
 DB_FOLDER = "data"
 DB_PATH = os.path.join(DB_FOLDER, "contacts.db")
-
-
-# utils.log_action()
-
 
 
 # 启动GUI
@@ -25,11 +22,12 @@ def main_gui():
 # 数据库检测
 #def main_db():
 def test_database():
-    print("开始测试数据库")
     conn = db_utils.init_db()
     print("数据库已连接")
     db_utils.create_tables(conn)
     print("数据库和表初始化完成")
+    db_utils.check_or_create_watermark(conn, config.COPYRIGHT_SHORT)
+    print("水印检测完成")
     conn.close()
 
 
