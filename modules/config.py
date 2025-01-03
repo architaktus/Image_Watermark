@@ -30,4 +30,5 @@ runtime_config = {
     "WM_ID": "",    #水印id (对应db_utils中的watermark表格的watermark_id)
     "WM_FILE_NAME": "",    #水印文件名 (对应db_utils中的watermark表格的watermark_file_name)
     "WM_FILE_DIR": "",    #水印地址
+    "WM_INFO_ALPHA": "",    #水印DWT处理的alpha值
 }

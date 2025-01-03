@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QTimer
 import os
-from modules.utils import (utils, image_manager)
+from modules.utils import (utils, image_manager, watermark_steganography)
 from modules import config
 
 class WatermarkApp(QMainWindow):
@@ -83,9 +83,9 @@ class WatermarkApp(QMainWindow):
 
     # 选取图片时
     def on_image_selected(self, item):        
-        selected_image = item.text()    # 获取选中的图片文件名
+        self.selected_image = item.text()    # 获取选中的图片文件名
         #self.label_zustand.setText(f"Selected Image: {selected_image}")     #设置当前状态
-        self.selected_image_path = os.path.join(self._dir_img_to_process, selected_image)
+        self.selected_image_path = os.path.join(self._dir_img_to_process, self.selected_image)
         #self.process_button.setEnabled(True)
         image_manager.read_image(self.selected_image_path)
 
@@ -129,6 +129,17 @@ class WatermarkApp(QMainWindow):
         # 使用 QPixmap 加载图片
         # 将图片设置到 QLabel
 #        self.preview_label.setPixmap(pixmap.scaled(self.preview_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+
+    # 加水印
+    def to_embed_watermark(self):
+        # TODO 图片改名、加入数据库
+        if self.selected_image:
+            output_path = os.path.join(config.IMAGE_WATERMARKED_DIR, self.selected_image)
+            print(f"embedding watermark")
+            watermark_steganography.stega_embed(self.selected_image_path, output_path, 3) # TODO Alpha
+        #else:
+            # TODO 提示选择图片
 
 #####################################################################################
 #####################################################################################      
@@ -350,6 +361,7 @@ class WatermarkApp(QMainWindow):
         layout.addWidget(steg_group)
         #####################################################
         self.embed_button = QPushButton("embed watermark")  #嵌入可视+不可视水印
+        self.embed_button.clicked.connect(self.to_embed_watermark)
         layout.addWidget(self.embed_button)
 
         embed_tab.setLayout(layout)
@@ -444,10 +456,6 @@ class WatermarkApp(QMainWindow):
             pixmap = QPixmap(file_name)
             self.preview_label.setPixmap(pixmap.scaled(self.preview_label.size(), Qt.KeepAspectRatio))
 
-    def embed_watermark(self):
-        watermark_text = self.text_input.text()
-        print(f"Embedding watermark: {watermark_text}")
-        # Placeholder for embedding logic
 
     def open_image_read(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Open Image", "", "Images (*.png *.jpg *.jpeg)")

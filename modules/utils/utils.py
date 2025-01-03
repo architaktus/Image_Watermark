@@ -1,7 +1,7 @@
 import os
 from configparser import ConfigParser
 from modules import config
-
+import numpy as np
 
 
 # 操作日志/记录
@@ -25,3 +25,30 @@ def check_file_exists(file_path):
     :return: 布尔值 True 表文件存在
     """
     return os.path.exists(file_path)
+
+
+# 将小图像以色块填充至大图像等大
+def pad_image_to_match(image, target_shape, fill_value=0):
+    """
+    将二值化图像填充到目标大小。
+    image: 待处理二值化小图像 (ndarray, 值为 0 或 1)
+    target_shape: 目标形状 (height, width)
+    fill_value: 填充值 (默认为0)
+    """
+    target_height, target_width = target_shape
+    wm_height, wm_width = image.shape
+
+    # 计算上下和左右的填充大小
+    pad_top = (target_height - wm_height) // 2
+    pad_bottom = target_height - wm_height - pad_top
+    pad_left = (target_width - wm_width) // 2
+    pad_right = target_width - wm_width - pad_left
+
+    # 填充水印
+    padded_image = np.pad(
+        image, 
+        ((pad_top, pad_bottom), (pad_left, pad_right)), 
+        mode='constant', 
+        constant_values=fill_value
+    )
+    return padded_image
