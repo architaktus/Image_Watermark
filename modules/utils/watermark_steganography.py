@@ -43,6 +43,9 @@ def stega_embed(image_path, output_path, embed_type=1, alpha=0.1, wavelet='haar'
 
     # 重构图像
     print("重构图像...")
+    print(f"    Y通道 尺寸{Y_watermarked.shape}, 最大值 {np.max(Y_watermarked)}, 最小值 {np.min(Y_watermarked)}")
+    print(f"    Cb通道 尺寸{Cb.shape}, 最大值 {np.max(Cb)}, 最小值 {np.min(Cb)}")
+    print(f"    Cr通道 尺寸{Cr.shape}, 最大值 {np.max(Cr)}, 最小值 {np.min(Cr)}")
     Y_watermarked = np.clip(Y_watermarked, 0, 255).astype(np.uint8)
     ycbcr_watermarked = cv2.merge([Y_watermarked, Cb, Cr])
         # YCrCb 转 RGB
@@ -198,12 +201,16 @@ def embed_watermark(
             3 = "HL/LH"
     """
     LL, (LH, HL, HH) = coeffs
+    Y_1= dwt_reconstruct(coeffs, wavelet)
+    print(f"test原尺寸 {Y_1.shape}")
 
     # 分类嵌入水印
     # 嵌入水印到 LL 子带
     if embed_type == 1 or embed_type == 2:
         print("     嵌入LL子带")
         LL_watermarked = LL + alpha * wm_array
+        LL_watermarked[LL_watermarked > 255 ] = 255
+        LL_watermarked[LL_watermarked < 0 ] = 0
         # 用修改后的 LL 替换
         coeffs[0] = LL_watermarked
     
@@ -227,6 +234,7 @@ def embed_watermark(
     # 逆 DWT 重建图像
     print("     逆DWT, 重建Y通道")
     Y_watermarked = dwt_reconstruct(coeffs, wavelet)
+    print(f"test新尺寸 {Y_watermarked.shape}")
 
     return Y_watermarked
 

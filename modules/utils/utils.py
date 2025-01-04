@@ -23,8 +23,11 @@ def check_file_exists(file_path):
     """
     检查指定路径的水印文件是否存在。
     
-    :param file_path: 文件的完整路径
-    :return: 布尔值 True 表文件存在
+    Args:
+        file_path: 文件的完整路径
+
+    Returns: 
+        布尔值 True 表文件存在
     """
     return os.path.exists(file_path)
 
@@ -71,9 +74,47 @@ def preprocess_image(image_path):
     # 检查矩阵维度
     if Y.ndim == 3:
         Y = Y.squeeze()  #移除最后一维
-        print(f"    调整矩阵形状为{Y.shape}")
+        print(f"    检查、调整矩阵维度，调整形状为{Y.shape}")
+
+    # 检查矩阵边界
+    Y = pad_channel_with_edge_replicate(Y)
+    Cb = pad_channel_with_edge_replicate(Cb)
+    Cr = pad_channel_with_edge_replicate(Cr)
+    print(f"    检查、调整矩阵边界，最终形状为{Y.shape}")
+
     return Y, Cb, Cr
 
+# 检查矩阵奇偶性——边界复制（edge replication padding）
+def pad_channel_with_edge_replicate(channel):
+    """
+    检查矩阵奇偶性
+    （边长若为奇数像素，在DWT对Y通道分解和重组后会变为偶数、产生1像素误差，导致其与余两个通道无法合并）
+    边长奇数->偶数
+
+    Args:
+        channel: YCrCb图像的三个通道之一
+
+    Returns:
+        : 返回拓展后的通道
+    """
+    h, w = channel.shape
+    new_h = h if h % 2 == 0 else h + 1
+    new_w = w if w % 2 == 0 else w + 1
+    padded_channel = np.zeros((new_h, new_w), dtype=channel.dtype)
+    
+   # 填充原始区域
+    padded_channel[:h, :w] = channel #复制（:h，即取 padded_channel 的第 0 到 h-1 行）
+
+    # 复制边界行
+    if h < new_h:
+        padded_channel[h:, :w] = channel[h - 1:h, :] 
+    # 复制边界列
+    if w < new_w:
+        padded_channel[:h, w:] = channel[:, w - 1:w]
+    # 复制右下角
+    if h < new_h and w < new_w:
+        padded_channel[h:, w:] = channel[h - 1, w - 1]
+    return padded_channel
 
 # 拼接
 def merge_image_left_and_right(left, right):
@@ -193,7 +234,7 @@ def pad_image_to_match(
     Returns:
         np.ndarray: 返回拓展至目标大小的二值化图像Padded binary image of shape target_shape.
     """
-    print(f"     调整水印尺寸({image.shape})为{target_shape}")
+    print(f"     调整水印尺寸{image.shape} 为 {target_shape}")
     ###################
     #拓展
     ###################
@@ -208,37 +249,42 @@ def pad_image_to_match(
         #不放大
     if scale >= 1 and scale < 2:  
         image_resized = image
+        wm_resized_height = wm_height
+        wm_resized_width = wm_width
     else:
         #缩小
         if scale <= 1:  
             #INTER_AREA 用于图像缩小的插值参数
-            print("正在缩小水印")
+            print("     正在缩小水印")
             wm_resized_height = int(wm_height * scale)
             wm_resized_width = int(wm_width * scale)
             image_resized = cv2.resize(image, (wm_resized_width, wm_resized_height), interpolation=cv2.INTER_AREA)
         #略放大
         if scale >= 2:  
-            print("正在放大水印")
+            print("     正在放大水印")
             wm_resized_small_height = int(wm_height * scale  * 0.5)
             wm_resized_small_width = int(wm_width * scale  * 0.5)
             image_resized = cv2.resize(image, (wm_resized_small_width, wm_resized_small_height))
- 
+    print(f"     已调整水印尺寸为 {image_resized.shape}")
+    
     ###################
     # 填充   
     ###################
     # 计算上下和左右的填充大小
-    pad_y = target_height - wm_height
-    pad_x = target_width - wm_width
+    pad_y = target_height - wm_resized_height
+    pad_x = target_width - wm_resized_width
         # 映射填充位置（原以条件分支判断，现优化为映射关系）
     expand_map = {0: lambda m: m // 2, 1: lambda m: m, 2: lambda m: 0}  # 映射+ 匿名函数x3
     pad_left = expand_map.get(expand_type[0], expand_map[0])(pad_x)     # x方向：如果 expand_type[0] 不存在，返回默认值 expand_map[0]
     pad_top = expand_map.get(expand_type[1], expand_map[0])(pad_y)      # y方向：同理
     if expand_type[0] not in expand_map or expand_type[1] not in expand_map:
         print("WARNING: 填充位置设置错误! 已按居中设置")
-    pad_bottom = pad_y - pad_top
-    pad_right = pad_x - pad_left
+    pad_bottom = abs(pad_y - pad_top)
+    pad_right = abs(pad_x - pad_left)
+    print(f"     水印的拓展尺寸为:(左,右,上,下) = ({pad_left},{pad_right},{pad_top},{pad_bottom})")
 
     # 填充水印
+    print(f"     拓展水印")
         # 填充随机噪声  TODO 测试
     fill_value = config.runtime_config["WM_COLOR_PAD"]
     if random_fill and pad_mode == 'constant':
@@ -260,5 +306,6 @@ def pad_image_to_match(
             mode=pad_mode, 
             constant_values=(fill_value if pad_mode == 'constant' else None)
         )
+    print(f"     已调整水印尺寸为 {padded_image.shape}")
 
     return padded_image

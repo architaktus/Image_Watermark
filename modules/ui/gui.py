@@ -137,15 +137,17 @@ class WatermarkApp(QMainWindow):
         if self.selected_image:
             output_path = os.path.join(config.IMAGE_WATERMARKED_DIR, self.selected_image)
             print(f">>>EMBEDDING WATERMARK...")
-            watermark_steganography.stega_embed(self.selected_image_path, output_path, 2) # TODO Alpha
+            print(f"正在为{self.selected_image} 嵌入水印")
+            watermark_steganography.stega_embed(self.selected_image_path, output_path, 2) # TODO Alpha, embed子带2>1
         #else:
-            # TODO 提示选择图片
+            # TODO 若未选择 提示选择图片
     # 读取水印
     def to_extract_watermark(self):
         input_origin = config.TEST_ORIGINAL_DIR
         input_wm = config.TEST_WATERMARKED_DIR
         #output_wm_set = watermark_steganography.stega_extract(input_wm, input_origin)
         print(f">>>EXTRACTING WATERMARK...")
+        #print(f"正在为{self.selected_image} 嵌入水印")
         watermark_steganography.stega_extract(input_wm, input_origin, 2)
         #output_wm_ll = output_wm_set[0]
         #output_wm_hl = output_wm_set[1]
