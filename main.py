@@ -26,7 +26,7 @@ def test_database():
     print("数据库已连接")
     db_utils.create_tables(conn)
     print("数据库和表初始化完成")
-    db_utils.check_or_create_watermark(conn, config.COPYRIGHT_SHORT)
+    db_utils.check_or_create_watermark(conn, config.COPYRIGHT_QR)
     print("水印检测完成")
     conn.close()
 

@@ -136,10 +136,23 @@ class WatermarkApp(QMainWindow):
         # TODO 图片改名、加入数据库
         if self.selected_image:
             output_path = os.path.join(config.IMAGE_WATERMARKED_DIR, self.selected_image)
-            print(f"embedding watermark")
-            watermark_steganography.stega_embed(self.selected_image_path, output_path, 3) # TODO Alpha
+            print(f">>>EMBEDDING WATERMARK...")
+            watermark_steganography.stega_embed(self.selected_image_path, output_path, 2) # TODO Alpha
         #else:
             # TODO 提示选择图片
+    # 读取水印
+    def to_extract_watermark(self):
+        input_origin = config.TEST_ORIGINAL_DIR
+        input_wm = config.TEST_WATERMARKED_DIR
+        #output_wm_set = watermark_steganography.stega_extract(input_wm, input_origin)
+        print(f">>>EXTRACTING WATERMARK...")
+        watermark_steganography.stega_extract(input_wm, input_origin, 2)
+        #output_wm_ll = output_wm_set[0]
+        #output_wm_hl = output_wm_set[1]
+        # 使用 QPixmap 加载图片
+        #pixmap = QPixmap(self.selected_image_path)
+        #self.preview_label.setPixmap(pixmap.scaled(self.preview_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
 
 #####################################################################################
 #####################################################################################      
@@ -432,12 +445,18 @@ class WatermarkApp(QMainWindow):
         # Buttons
         self.button_reload = QPushButton("reload Databade")  #重新载入数据库内容
         self.button_decode = QPushButton("Decode Watermarks")  #水印读取
+        self.button_decode.clicked.connect(self.to_extract_watermark)
         layout.addWidget(self.button_reload)
         layout.addWidget(self.button_decode)
         layout.setStretch(3, 1) 
 
         read_tab.setLayout(layout)
         return read_tab
+
+
+
+
+
 
 
 #Update the left panel content based on the active tab.
